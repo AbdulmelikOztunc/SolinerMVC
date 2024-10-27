@@ -95,7 +95,7 @@
             const selectedInfo = [];
 
             if ($('#forecastCheckbox').is(':checked')) selectedInfo.push('forecast');
-            if ($('#actualCheckbox').is(':checked')) selectedInfo.push('actual');
+            if ($('#actualCheckbox').is(':checked')) selectedInfo.push('weather');
 
             $.ajax({
                 url: `/api/weather/${region}`,
