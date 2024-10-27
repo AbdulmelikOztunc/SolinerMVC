@@ -1,0 +1,208 @@
+﻿<style>
+    body {
+        background-color: #f0f4f8;
+        background-image: url('https://rneteknoloji.com/uploads/blog/786bb637b1360e575b0f405b40c7509b.jpg');
+    }
+
+
+</style>
+
+
+<div class="container mt-5 p-4 shadow-lg rounded bg-light">
+    <h1 class="text-center mb-4 text-primary">🌤 Weather Data Visualization</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-3 bg-white rounded p-3 shadow-sm">
+            <h5 class="text-secondary mb-3">Settings</h5>
+
+            <div class="mb-3">
+                <label for="regionSelect" class="form-label fw-bold">Select Region:</label>
+                <select id="regionSelect" class="form-select">
+                    <option value="Ege">Ege</option>
+                    <option value="Marmara">Marmara</option>
+                    <option value="Akdeniz">Akdeniz</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold">Select Graph Type:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="barTemp" value="Temperature" checked>
+                    <label class="form-check-label" for="barTemp">Temperature</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="barHumidity" value="Humidity" >
+                    <label class="form-check-label" for="barHumidity">Humidity</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold">Select Data Type:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="forecastCheckbox" value="forecast" checked>
+                    <label class="form-check-label" for="forecastCheckbox">Forecast</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="actualCheckbox" value="actual" >
+                    <label class="form-check-label" for="actualCheckbox">Actual</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="errorSelect" class="form-label fw-bold">Select Error Metric:</label>
+                <select id="errorSelect" class="form-select">
+                    <option value="MAE">MAE</option>
+                    <option value="MAPE">MAPE</option>
+                    <option value="RMSE">RMSE</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="bg-white rounded shadow-sm p-3">
+                <canvas id="weatherChart" class="w-100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Referans alınacak grafik objesi
+        let weatherChart;
+
+        // Bölge ve parametre seçildiğinde grafiği güncelle
+        $('#forecastCheckbox, #actualCheckbox, #regionSelect, #parameterSelect, #barTemp, #barHumidity').on('change', function () {
+            updateWeatherData();
+        });
+
+        // Hata metriği seçildiğinde hata grafiğini göster
+        $('#errorSelect').on('change', function () {
+            const errorMetric = $(this).val();
+            alert(`Selected error metric: ${errorMetric}`); // Burada hata grafiği eklenebilir
+        });
+
+        // API'den veri çekme ve grafiği güncelleme fonksiyonu
+        function updateWeatherData() {
+            const region = $('#regionSelect').val();
+            const parameters = ['Temperature', 'Humidity']; // Varsayılan parametreler
+            const selectedInfo = [];
+
+            if ($('#forecastCheckbox').is(':checked')) selectedInfo.push('forecast');
+            if ($('#actualCheckbox').is(':checked')) selectedInfo.push('actual');
+
+            $.ajax({
+                url: `/api/weather/${region}`,
+                method: 'GET',
+                success: function (data) {
+                    const filteredData = data.filter(item =>
+                        parameters.includes(item.parameter) && selectedInfo.includes(item.info)
+                    );
+
+
+
+                    renderChart(filteredData); // Grafik güncelleniyor
+                },
+                error: function () {
+                    alert('Failed to fetch weather data.');
+                }
+            });
+        }
+
+        // Chart.js ile grafik oluşturma veya güncelleme
+        function renderChart(data) {
+            const allDates = [...new Set(data.map(item => item.datetime))].sort();
+            const datasets = [];
+
+            const parameters = [];
+            if ($('#barTemp').is(':checked')) parameters.push('Temperature');
+            if ($('#barHumidity').is(':checked')) parameters.push('Humidity');
+            // Seçime göre grafik türünü belirleme
+            const isBarChart = param =>
+                (param === 'Temperature' && $('#barTemp').is(':checked')) ||
+                (param === 'Humidity' && $('#barHumidity').is(':checked'));
+
+            // Parametre ve veri türüne göre veriyi grupla
+            const groupedData = groupBy(data, ['parameter', 'info']);
+
+            for (const [key, values] of Object.entries(groupedData)) {
+                const [parameter, info] = key.split('-');
+
+                if (parameters.includes(parameter)) {
+                    datasets.push({
+                        label: `${parameter} (${info})`,
+                        data: allDates.map(date =>
+                            values.find(v => v.datetime === date)?.value || null
+                        ),
+                        backgroundColor: getRandomColor(),
+                        borderColor: getRandomColor(),
+                        borderWidth: 1,
+                        tension: 0.1,
+                        fill: false,
+                    });
+                }
+            }
+
+            // Mevcut grafik varsa önce temizle
+            if (weatherChart) {
+                weatherChart.destroy();
+            }
+
+            // Yeni grafiği oluştur
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            weatherChart = new Chart(ctx, {
+                type: 'line', // Varsayılan tür
+                data: {
+                    labels: allDates,
+                    datasets: datasets,
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                        },
+                        y: {
+                            beginAtZero: true,
+                        },
+                    },
+                },
+            });
+        }
+
+        // Veriyi parametreye göre gruplama fonksiyonu
+        function groupBy(array, keys) {
+            return array.reduce((result, currentValue) => {
+                const key = keys.map(k => currentValue[k]).join('-');
+                (result[key] = result[key] || []).push(currentValue);
+                return result;
+            }, {});
+        }
+
+        // Rastgele renk üretme fonksiyonu (grafik için)
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Sayfa yüklendiğinde başlangıç verilerini yükle
+        $(document).ready(function () {
+            updateWeatherData();
+        });
+    </script>
+}
