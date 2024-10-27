@@ -21,6 +21,18 @@
                     <option value="Ege">Ege</option>
                     <option value="Marmara">Marmara</option>
                     <option value="Akdeniz">Akdeniz</option>
+                    <option value="İstanbul">İstanbul</option>
+                    <option value="Ankara">Ankara</option>
+                    <option value="İzmir">İzmir</option>
+                    <option value="Adana">Adana</option>
+                    <option value="Bursa">Bursa</option>
+                    <option value="Tekirdağ">Tekirdağ</option>
+                    <option value="Kocaeli">Kocaeli</option>
+                    <option value="Gaziantep">Gaziantep</option>
+                    <option value="Antalya">Antalya</option>
+                    <option value="Çanakkale">Çanakkale</option>
+                    <option value="Konya">Konya</option>
+                    <option value="Mersin">Mersin</option>
                 </select>
             </div>
 
@@ -123,11 +135,16 @@
             const parameters = [];
             if ($('#barTemp').is(':checked')) parameters.push('Temperature');
             if ($('#barHumidity').is(':checked')) parameters.push('Humidity');
-            // Seçime göre grafik türünü belirleme
-            const isBarChart = param =>
-                (param === 'Temperature' && $('#barTemp').is(':checked')) ||
-                (param === 'Humidity' && $('#barHumidity').is(':checked'));
 
+            // Seçime göre grafik türünü belirleme
+            const isBarChart = param =>                
+                (param === 'weather');
+
+            // Sabit renkler tanımla
+            const colorMap = {
+                Temperature: '#FF5733', // Turuncu
+                Humidity: '#3498DB'     // Mavi
+            };
             // Parametre ve veri türüne göre veriyi grupla
             const groupedData = groupBy(data, ['parameter', 'info']);
 
@@ -140,8 +157,9 @@
                         data: allDates.map(date =>
                             values.find(v => v.datetime === date)?.value || null
                         ),
-                        backgroundColor: getRandomColor(),
-                        borderColor: getRandomColor(),
+                        type: isBarChart(info) ? 'bar' : 'line',
+                        backgroundColor: isBarChart(info) ? colorMap[parameter] : 'black',
+                        borderColor: colorMap[parameter],
                         borderWidth: 1,
                         tension: 0.1,
                         fill: false,
