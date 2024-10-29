@@ -1,5 +1,5 @@
 ﻿using CsvHelper.Configuration;
-using SolinerMVC.Models;
+using SolinerMVC.DTOs;
 
 namespace SolinerMVC.Maps;
 

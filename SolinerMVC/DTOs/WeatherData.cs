@@ -1,4 +1,4 @@
-﻿namespace SolinerMVC.Models;
+﻿namespace SolinerMVC.DTOs;
 
 public class WeatherData
 {

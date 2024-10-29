@@ -1,41 +1,86 @@
 ﻿<style>
-    body {
-        background-color: #f0f4f8;
-        background-image: url('https://rneteknoloji.com/uploads/blog/786bb637b1360e575b0f405b40c7509b.jpg');
+    body::before {
+        content: "";
+        background-image: url('/image/pngegg.png');
+        background-size: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        transform: scaleY(-1); /* Yalnızca arka planı döndürmek */
+    }
+</style>
+<style>
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+        margin: 0 10px;
     }
 
+        .switch input {
+            display: none;
+        }
 
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: cornflowerblue;
+        transition: .4s;
+        border-radius: 20px;
+    }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: aqua;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+    input:checked + .slider {
+        background-color: #005;
+    }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
 </style>
 
 
+
 <div class="container mt-5 p-4 shadow-lg rounded bg-light">
-    <h1 class="text-center mb-4 text-primary">🌤 Weather Data Visualization</h1>
+    <h1 class="text-center mb-4 text-info">🌤 Weather Data Visualization</h1>
 
     <div class="row mb-4">
+        <!-- Ana Grafik mobil -->
+        
+            <div class="bg-white col-12 d-md-none rounded shadow-sm p-3">
+                <canvas id="weatherChartMobil" class="w-100"></canvas>
+            </div>
+        
+        <!-- Ayar Paneli -->
         <div class="col-md-3 bg-white rounded p-3 shadow-sm">
             <h5 class="text-secondary mb-3">Settings</h5>
 
+            <!-- Bölge Seçimi -->
             <div class="mb-3">
                 <label for="regionSelect" class="form-label fw-bold">Select Region:</label>
-                <select id="regionSelect" class="form-select">
-                    <option value="Ege">Ege</option>
-                    <option value="Marmara">Marmara</option>
-                    <option value="Akdeniz">Akdeniz</option>
-                    <option value="İstanbul">İstanbul</option>
-                    <option value="Ankara">Ankara</option>
-                    <option value="İzmir">İzmir</option>
-                    <option value="Adana">Adana</option>
-                    <option value="Bursa">Bursa</option>
-                    <option value="Tekirdağ">Tekirdağ</option>
-                    <option value="Kocaeli">Kocaeli</option>
-                    <option value="Gaziantep">Gaziantep</option>
-                    <option value="Antalya">Antalya</option>
-                    <option value="Çanakkale">Çanakkale</option>
-                    <option value="Konya">Konya</option>
-                    <option value="Mersin">Mersin</option>
-                </select>
+                <select id="regionSelect" class="form-select"></select>
             </div>
 
+            <!-- Grafik Türü Seçimi -->
             <div class="mb-3">
                 <label class="fw-bold">Select Graph Type:</label>
                 <div class="form-check">
@@ -43,11 +88,12 @@
                     <label class="form-check-label" for="barTemp">Temperature</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="barHumidity" value="Humidity" >
+                    <input class="form-check-input" type="checkbox" id="barHumidity" value="Humidity">
                     <label class="form-check-label" for="barHumidity">Humidity</label>
                 </div>
             </div>
 
+            <!-- Veri Türü Seçimi -->
             <div class="mb-3">
                 <label class="fw-bold">Select Data Type:</label>
                 <div class="form-check">
@@ -55,12 +101,13 @@
                     <label class="form-check-label" for="forecastCheckbox">Forecast</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="actualCheckbox" value="actual" >
+                    <input class="form-check-input" type="checkbox" id="actualCheckbox" value="actual">
                     <label class="form-check-label" for="actualCheckbox">Actual</label>
                 </div>
             </div>
 
-            <div class="mb-3">
+            <!-- Hata Metrik Seçimi -->
+            <div class="mb-1">
                 <label for="errorSelect" class="form-label fw-bold">Select Error Metric:</label>
                 <select id="errorSelect" class="form-select">
                     <option value="MAE">MAE</option>
@@ -68,15 +115,53 @@
                     <option value="RMSE">RMSE</option>
                 </select>
             </div>
+
+            <!-- Hata Grafiği -->
+            <div class="mt-0">
+                <div class="bg-white rounded shadow-sm p-3">
+                    <canvas id="errorChart" class="w-100"></canvas>
+                </div>
+            </div>
+            <!-- DB vs CSV -->
+            <div class="col-12 mt-4 justify-content-center" style="display: flex; align-items: center; ">
+                <span>DB</span>
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+                <span>CSV</span>
+            </div>
+
+
         </div>
 
-        <div class="col-md-9">
+        <!-- Ana Grafik -->
+        <div class="col-md-9 d-md-block d-none">
             <div class="bg-white rounded shadow-sm p-3">
                 <canvas id="weatherChart" class="w-100"></canvas>
             </div>
+            <div class="d-flex flex-row-reverse">
+                <div class="col-6 col-sm-3 rounded-circle">
+                    <form asp-controller="Home" asp-action="ImportCsv" class="rounded-circle" method="post" enctype="multipart/form-data" style="max-width: 500px; margin: auto; padding: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <input type="file" name="file" id="csvFile" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;" />
+                        </div>
+                        <button type="submit" style="display: block; width: 100%; padding: 10px 0; background-color: #5b73f6; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
+                            Upload
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
         </div>
+
     </div>
+
 </div>
+
+
+
 
 
 
@@ -88,24 +173,133 @@
     <script>
         // Referans alınacak grafik objesi
         let weatherChart;
+        let weatherChartMobil;
+        let errorChart;  // Hata grafiği referansı
+      
+        
+        const regions = [
+            "Ege", "Marmara", "Akdeniz", "İstanbul", "Ankara",
+            "İzmir", "Adana", "Bursa", "Tekirdağ", "Kocaeli",
+            "Gaziantep", "Antalya", "Çanakkale", "Konya", "Mersin"
+        ];
+        const regionSelect = document.getElementById('regionSelect');
+        regions.forEach(region => {
+            const option = document.createElement('option');
+            option.value = region;
+            option.textContent = region;
+            regionSelect.appendChild(option);
+        });
+
 
         // Bölge ve parametre seçildiğinde grafiği güncelle
-        $('#forecastCheckbox, #actualCheckbox, #regionSelect, #parameterSelect, #barTemp, #barHumidity').on('change', function () {
+        $('#forecastCheckbox, #actualCheckbox, #regionSelect, #barTemp, #barHumidity').on('change', function () {
             updateWeatherData();
         });
 
         // Hata metriği seçildiğinde hata grafiğini göster
         $('#errorSelect').on('change', function () {
             const errorMetric = $(this).val();
-            alert(`Selected error metric: ${errorMetric}`); // Burada hata grafiği eklenebilir
+            fetchErrorMetric(errorMetric); // Hata metriği için veri çekme fonksiyonu
         });
 
+        
+        function fetchErrorMetric(metric) {
+            const region = $('#regionSelect').val();
+            const parameter = $('#barTemp').is(':checked') ? 'Temperature' : 'Humidity'; // Seçilen parametreyi belirle
+            $.ajax({
+                url: `/api/weather/${region}/calculate-error`,
+                method: 'GET',
+                data: { metric: metric, parameter: parameter }, // Parametreyi query parametresi olarak gönder
+                success: function (data) {
+                    console.log(data); // Dönen veriyi kontrol etmek için konsola yazdırın
+                    if (Array.isArray(data.values)) { // 'values' küçük harfle kontrol ediliyor
+                        renderErrorChart(metric, data.values); // Veriyi grafikle göster
+                    } else {
+                        alert('Received data is not an array.');
+                    }
+                },
+                error: function (xhr) {
+                    alert(`Failed to fetch error metric: ${xhr.responseText}`);
+                }
+            });
+        }
+
+        function renderErrorChart(metric, values) {
+            const labels = values.map((_, index) => `${metric} ${index + 1}`); // Metrik ismi ve indeks etiket olarak kullanılıyor
+            const ctx = document.getElementById('errorChart').getContext('2d');
+
+            if (errorChart) {
+                errorChart.destroy(); // Mevcut grafiği yok et
+            }
+
+            errorChart = new Chart(ctx, {
+                type: 'line', // Çizgi grafik türü
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: metric,
+                        data: values,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // Zaman dilimi seçimi için global değişken (örneğin: 'hourly', '3-hourly', '6-hourly', 'daily')
+        let selectedTimeInterval = 'hourly';
+        // Scroll event ile zaman dilimini ayarlayan fonksiyon
+
+        // Fare tekerleği ile zaman dilimini ayarlayan fonksiyon
+        function adjustTimeIntervalOnWheel(event) {
+            const delta = event.originalEvent.deltaY;
+            if (delta > 0) {
+                // Aşağı kaydırma (yukarı yönde)
+                if (selectedTimeInterval === 'hourly') {
+                    selectedTimeInterval = '3-hourly';
+                } else if (selectedTimeInterval === '3-hourly') {
+                    selectedTimeInterval = '6-hourly';
+                } else if (selectedTimeInterval === '6-hourly') {
+                    selectedTimeInterval = 'daily';
+                }
+            } else {
+                // Yukarı kaydırma (aşağı yönde)
+                if (selectedTimeInterval === 'daily') {
+                    selectedTimeInterval = '6-hourly';
+                } else if (selectedTimeInterval === '6-hourly') {
+                    selectedTimeInterval = '3-hourly';
+                } else if (selectedTimeInterval === '3-hourly') {
+                    selectedTimeInterval = 'hourly';
+                }
+            }
+            updateWeatherData(); // Zaman dilimi değişince grafiği güncelle
+        }
+        // Zaman dilimine göre veriyi filtreleme fonksiyonu
+        function filterByTimeInterval(data) {
+            return data.filter(item => {
+                const hour = new Date(item.datetime).getHours();
+                if (selectedTimeInterval === 'hourly') return true; // Her veri dahil
+                if (selectedTimeInterval === '3-hourly') return hour % 3 === 0;
+                if (selectedTimeInterval === '6-hourly') return hour % 6 === 0;
+                if (selectedTimeInterval === 'daily') return hour === 0; // Sadece gün başlangıcı
+            });
+        }
         // API'den veri çekme ve grafiği güncelleme fonksiyonu
         function updateWeatherData() {
             const region = $('#regionSelect').val();
             const parameters = ['Temperature', 'Humidity']; // Varsayılan parametreler
             const selectedInfo = [];
-
+            const metric = $('#errorSelect').val();
+            fetchErrorMetric(metric);
             if ($('#forecastCheckbox').is(':checked')) selectedInfo.push('forecast');
             if ($('#actualCheckbox').is(':checked')) selectedInfo.push('weather');
 
@@ -113,11 +307,9 @@
                 url: `/api/weather/${region}`,
                 method: 'GET',
                 success: function (data) {
-                    const filteredData = data.filter(item =>
-                        parameters.includes(item.parameter) && selectedInfo.includes(item.info)
-                    );
-
-
+                    // Gelen veriyi zaman dilimine göre filtrele
+                    const filteredData = filterByTimeInterval(data)
+                        .filter(item => parameters.includes(item.parameter) && selectedInfo.includes(item.info));
 
                     renderChart(filteredData); // Grafik güncelleniyor
                 },
@@ -171,10 +363,37 @@
             if (weatherChart) {
                 weatherChart.destroy();
             }
-
+            if (weatherChartMobil) {
+                weatherChartMobil.destroy();
+            }
             // Yeni grafiği oluştur
             const ctx = document.getElementById('weatherChart').getContext('2d');
+            const ctx2 = document.getElementById('weatherChartMobil').getContext('2d');
+
             weatherChart = new Chart(ctx, {
+                type: 'line', // Varsayılan tür
+                data: {
+                    labels: allDates,
+                    datasets: datasets,
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                        },
+                        y: {
+                            beginAtZero: true,
+                        },
+                    },
+                },
+            });
+            weatherChartMobil = new Chart(ctx2, {
                 type: 'line', // Varsayılan tür
                 data: {
                     labels: allDates,
@@ -221,6 +440,11 @@
         // Sayfa yüklendiğinde başlangıç verilerini yükle
         $(document).ready(function () {
             updateWeatherData();
+
+            // Fare tekerleği event dinleyici ekle
+            $(window).on('wheel', adjustTimeIntervalOnWheel);
+            const metric = $('#errorSelect').val();
+            fetchErrorMetric(metric);
         });
     </script>
 }
