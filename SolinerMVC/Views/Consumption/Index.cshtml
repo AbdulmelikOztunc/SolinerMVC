@@ -1,0 +1,339 @@
+﻿@model SolinerMVC.Models.ConsumptionViewModel
+
+@{
+    ViewData["Title"] = "Consumption Data Analysis";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<style>
+    body::before {
+        content: "";
+        background-image: url('/image/pngegg.png');
+        background-size: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        transform: scaleY(-1); /* Yalnızca arka planı döndürmek */
+    }
+</style>
+
+<div class="container mt-5 p-4 shadow-lg rounded bg-light">
+    <h1 class="text-center mb-4 text-info"><i class="fas fa-chart-bar"></i>  Consumption Data Analysis</h1>
+
+    <div class="row mb-4">
+        <!-- Ana Grafik mobil -->
+
+        <div class="bg-white col-12 d-md-none rounded shadow-sm p-3">
+            <canvas id="consumptionChart2" class="w-100"></canvas>
+        </div>
+
+        <!-- Ayar Paneli -->
+        <div class="col-md-3 bg-white rounded p-3 shadow-sm text-secondary">
+            <h5 class="text-dark mb-3">Settings</h5>
+
+
+            <!-- Veri Türü Seçimi -->
+            <div class="mb-3">
+                <label class="fw-bold"><i class="fas fa-database"></i> Products </label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="productCheckbox1" value="Prod_1">
+                    <label class="form-check-label" for="productCheckbox1">Prod_1</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="productCheckbox2" value="Prod_2">
+                    <label class="form-check-label" for="productCheckbox2">Prod_2</label>
+                </div>
+               
+
+            </div>
+
+            <!-- Hata Metrik Seçimi -->
+            <div class="mb-1">
+                <label for="errorMetricSelector" class="form-label fw-bold"><i class="fas fa-calculator"></i> Error Metric </label>
+                <select id="errorMetricSelector" class="form-select">
+                    <option value="MAE" selected>MAE</option>
+                    <option value="MAPE">MAPE</option>
+                    <option value="RMSE">RMSE</option>
+                </select>
+            </div>
+
+            <!-- Hata Grafiği -->
+            <div class="mt-2">
+                <div class="bg-white rounded shadow-sm p-1">
+                    <canvas id="errorChart" class="w-100" height="200px"></canvas>
+                </div>
+            </div>
+
+
+
+
+        </div>
+
+        <!-- Ana Grafik -->
+        <div class="col-md-9 d-md-block d-none">
+            <div class="bg-white rounded shadow-sm p-3">
+                <canvas id="consumptionChart" class="w-100"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <canvas id="consumptionChart"></canvas>
+    <script>
+        // Günlük veriyi frontend'de saklıyoruz
+        const dailyLabels = @Html.Raw(Json.Serialize(Model.Labels));
+        const dailyConsumptionValues = @Html.Raw(Json.Serialize(Model.ConsumptionValues));
+        const dailyOfficialValues = @Html.Raw(Json.Serialize(Model.OfficialValues));
+        let currentView = 'daily'; // Başlangıçta günlük görünüm
+
+        const ctx = document.getElementById('consumptionChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dailyLabels,
+                datasets: [
+                    {
+                        label: 'Consumption',
+                        data: dailyConsumptionValues,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    },
+                    {
+                        label: 'Official',
+                        data: dailyOfficialValues,
+                        type: 'line',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true },
+                },
+            },
+        });
+
+        // **Wheel olayını yakala ve yön kontrolü yap**
+        window.addEventListener('wheel', (event) => {
+            const delta = event.deltaY;
+            const direction = delta > 0 ? 'down' : 'up'; // Wheel yönü
+            if (direction === 'down') {
+                if (currentView === 'daily') {
+                    updateChartToWeekly();
+                    currentView = 'weekly';
+                } else if (currentView === 'weekly') {
+                    updateChartToMonthly();
+                    currentView = 'monthly';
+                }
+            } else if (direction === 'up') {
+                if (currentView === 'monthly') {
+                    updateChartToWeekly();
+                    currentView = 'weekly';
+                } else if (currentView === 'weekly') {
+                    updateChartToDaily();
+                    currentView = 'daily';
+                }
+            }
+        });
+
+        // **Günlük veriyi göster**
+        function updateChartToDaily() {
+            console.log('Günlük veri gösteriliyor'); // Kontrol için log ekleyin
+            chart.data.labels = dailyLabels;
+            chart.data.datasets[0].data = dailyConsumptionValues;
+            chart.data.datasets[1].data = dailyOfficialValues;
+            chart.update();
+        }
+
+        // **Haftalık veriyi göster**
+        function updateChartToWeekly() {
+            console.log('Haftalık veri gösteriliyor'); // Kontrol için log ekleyin
+            const weeklyData = aggregateData(7); // 7 günlük veri
+            chart.data.labels = weeklyData.labels;
+            chart.data.datasets[0].data = weeklyData.consumptionValues;
+            chart.data.datasets[1].data = weeklyData.officialValues;
+            chart.update();
+        }
+
+        // **Aylık veriyi göster**
+        function updateChartToMonthly() {
+            console.log('Aylık veri gösteriliyor'); // Kontrol için log ekleyin
+            const monthlyData = aggregateData(30); // 30 günlük veri
+            chart.data.labels = monthlyData.labels;
+            chart.data.datasets[0].data = monthlyData.consumptionValues;
+            chart.data.datasets[1].data = monthlyData.officialValues;
+            chart.update();
+        }
+
+        // **Veriyi belirtilen periyotlara göre gruplama (haftalık/aylık)**
+        function aggregateData(period) {
+            const labels = [];
+            const consumptionValues = [];
+            const officialValues = [];
+            for (let i = 0; i < dailyLabels.length; i += period) {
+                const periodLabel = `${dailyLabels[i]} - ${dailyLabels[Math.min(i + period - 1, dailyLabels.length - 1)]}`;
+                labels.push(periodLabel);
+                const periodConsumption = dailyConsumptionValues.slice(i, i + period).reduce((a, b) => a + b, 0);
+                const periodOfficial = dailyOfficialValues.slice(i, i + period).reduce((a, b) => a + b, 0);
+                consumptionValues.push(periodConsumption);
+                officialValues.push(periodOfficial);
+            }
+            return { labels, consumptionValues, officialValues };
+        }
+
+        
+        // Checkbox'ların her biri için olay dinleyicileri ekle
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.form-check-input').forEach(checkbox => {
+               
+                checkbox.addEventListener('change', async function () {
+                    const response = await fetch(`/Consumption/GetProductData`, {
+                        method: 'Get',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (!response.ok) {
+                        const error = await response.text();
+                        alert(`Veri yükleme hatası: ${error}`);
+                        return;
+                    }
+                    const data = await response.json();
+                    console.log(data); // Yüklenen veriyi kontrol edin
+                    updateChart(data);
+                });
+
+            });
+        });
+        // Grafiği güncellemek için fonksiyon
+        function updateChart(data) {
+            // Verileri kullan
+            const labels = data.labels; // JSON nesnesinin "labels" özelliğini kullanın
+            const prod1Values = data.prod1Values; // Prod_1 değerleri
+            const prod2Values = data.prod2Values; // Prod_2 değerleri
+
+            // Mevcut veri setlerini temizle
+            chart.data.labels = labels;
+            chart.data.datasets = []; // Tüm datasetleri temizle
+
+            // Prod_1 datasetini ekle
+            if (document.getElementById('productCheckbox1').checked) {
+                chart.data.datasets.push({
+                    label: 'Prod_1',
+                    data: prod1Values,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    fill: false
+                });
+            }
+
+            // Prod_2 datasetini ekle
+            if (document.getElementById('productCheckbox2').checked) {
+                chart.data.datasets.push({
+                    label: 'Prod_2',
+                    data: prod2Values,
+                    borderColor: 'rgba(255, 205, 86, 1)',
+                    backgroundColor: 'rgba(75, 12, 192, 0.6)',
+                    fill: false
+                });
+            }
+            if (!document.getElementById('productCheckbox2').checked && !document.getElementById('productCheckbox1').checked) {
+                chart.data.datasets.push({
+                    label: 'Consumption',
+                        data: dailyConsumptionValues,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                });
+                chart.data.datasets.push({
+                    label: 'Official',
+                        data: dailyOfficialValues,
+                            type: 'line',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                    fill: false,
+                });
+            }
+            // Grafiği güncelle
+            chart.update();
+        }
+
+
+
+        // sayfayı resize ederken tekra çizmek (grafik için)
+        window.addEventListener('resize', function () {
+            chart.update(); // Chart'ı yeniden çiz
+        });
+
+    </script>
+   <canvas id="errorChart"></canvas>
+        <script>
+            // Başlangıç verileri
+            let errorChart;
+
+        document.getElementById('errorMetricSelector').addEventListener('change', async function () {
+            const selectedMetric = this.value;
+            const data = await fetch(`/Consumption/GetMonthlyErrorData?metric=${selectedMetric}`)
+                .then(response => response.json());
+            updateErrorChart(data);
+        });
+
+        function updateErrorChart(data) {
+            const labels = data.map(d => {
+                if (d.date) { // `date` küçük harfle kontrol edin
+                    const date = new Date(d.date); // C# tarihini JavaScript tarihine dönüştür
+                    return date.toLocaleDateString('tr-TR'); // Türkiye formatında tarih gösterimi
+                } else {
+                    console.warn('Tarih bilgisi eksik:', d);
+                    return 'Tarih Belirtilmemiş';
+                }
+            });
+            const values = data.map(d => d.errorValue); // `errorValue` küçük harfle kontrol edin
+
+            if (errorChart) {
+                errorChart.destroy(); // Mevcut grafiği yok et
+            }
+
+            const ctxMetric = document.getElementById('errorChart').getContext('2d');
+            errorChart = new Chart(ctxMetric, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Error Value',
+                        data: values,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Sayfa ilk yüklendiğinde MAE metriği ile grafiği doldur
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('errorMetricSelector').dispatchEvent(new Event('change'));
+        });
+    </script>
+}
+
+
+
+

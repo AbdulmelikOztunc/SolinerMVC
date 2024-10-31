@@ -4,13 +4,15 @@ using SolinerMVC.DTOs;
 using SolinerMVC.Models;
 using System.Globalization;
 using SolinerMVC.Data;
+using Microsoft.EntityFrameworkCore;
+using SolinerMVC.Enums;
 
 
 namespace SolinerMVC.Services;
 
 public class CsvUploadServices(ApplicationDbContext context)
 {
-    public void ImportCsvData(string filePath)
+    public void ImportCsvData(string filePath)  // hava tahminleri için kullancım
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -27,7 +29,7 @@ public class CsvUploadServices(ApplicationDbContext context)
         }
     }
 
-    public void SaveToDatabase(List<CsvWeatherData> records)
+    public void SaveToDatabase(List<CsvWeatherData> records) // hava tahminlerinde kullandım
     {
         foreach (var record in records)
         {
@@ -88,5 +90,34 @@ public class CsvUploadServices(ApplicationDbContext context)
         }
         context.SaveChanges();
     }
+    public void LoadCsvData(string csvFilePath)
+    {
+        using (var reader = new StreamReader(csvFilePath))
+        {
+            // İlk satır başlık satırıysa atla
+            var header = reader.ReadLine();
 
+            while (!reader.EndOfStream)
+            {
+                var line = reader.ReadLine();
+                var values = line.Split(',');
+                try
+                {
+                        var data = new ConsumptionData
+                    {
+                        Value = double.Parse(values[0], CultureInfo.InvariantCulture),
+                        DateTime = DateTime.Parse(values[1]),
+                        Type = Enum.Parse<ConsumptionType>(values[2], true)
+                    };
+
+                    context.ConsumptionData.Add(data);
+                }
+                catch (FormatException ex)
+                {
+                    throw new FormatException($"Hatalı veri satırı: {line}. Hata: {ex.Message}");
+                }
+            }
+        }
+        context.SaveChanges();
+    }
 }

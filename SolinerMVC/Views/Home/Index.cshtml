@@ -1,4 +1,5 @@
-﻿<style>
+﻿<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
     body::before {
         content: "";
         background-image: url('/image/pngegg.png');
@@ -71,44 +72,44 @@
             </div>
         
         <!-- Ayar Paneli -->
-        <div class="col-md-3 bg-white rounded p-3 shadow-sm">
-            <h5 class="text-secondary mb-3">Settings</h5>
+        <div class="col-md-3 bg-white rounded p-3 shadow-sm text-secondary">
+            <h5 class="text-dark mb-3">Settings</h5>
 
             <!-- Bölge Seçimi -->
             <div class="mb-3">
-                <label for="regionSelect" class="form-label fw-bold">Select Region:</label>
+                <label for="regionSelect" class="form-label fw-bold "><i class="fas fa-map-marker-alt"></i> Region </label>
                 <select id="regionSelect" class="form-select"></select>
             </div>
 
             <!-- Grafik Türü Seçimi -->
             <div class="mb-3">
-                <label class="fw-bold">Select Graph Type:</label>
+                <label class="fw-bold"> <i class="fas fa-chart-bar"></i> Parameter </label>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="barTemp" value="Temperature" checked>
+                    <input class="form-check-input bg-danger" type="checkbox" id="barTemp" value="Temperature" checked>
                     <label class="form-check-label" for="barTemp">Temperature</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="barHumidity" value="Humidity">
+                    <input class="form-check-input bg-info" type="checkbox" id="barHumidity" value="Humidity">
                     <label class="form-check-label" for="barHumidity">Humidity</label>
                 </div>
             </div>
 
             <!-- Veri Türü Seçimi -->
             <div class="mb-3">
-                <label class="fw-bold">Select Data Type:</label>
+                <label class="fw-bold"><i class="fas fa-database"></i> Data Type </label>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="forecastCheckbox" value="forecast" checked>
+                    <input class="form-check-input bg-secondary" type="checkbox" id="forecastCheckbox" value="forecast" checked>
                     <label class="form-check-label" for="forecastCheckbox">Forecast</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="actualCheckbox" value="actual">
+                    <input class="form-check-input bg-secondary" type="checkbox" id="actualCheckbox" value="actual">
                     <label class="form-check-label" for="actualCheckbox">Actual</label>
                 </div>
             </div>
 
             <!-- Hata Metrik Seçimi -->
             <div class="mb-1">
-                <label for="errorSelect" class="form-label fw-bold">Select Error Metric:</label>
+                <label for="errorSelect" class="form-label fw-bold"><i class="fas fa-calculator"></i> Error Metric </label>
                 <select id="errorSelect" class="form-select">
                     <option value="MAE">MAE</option>
                     <option value="MAPE">MAPE</option>
@@ -123,14 +124,15 @@
                 </div>
             </div>
             <!-- DB vs CSV -->
-            <div class="col-12 mt-4 justify-content-center" style="display: flex; align-items: center; ">
-                <span>DB</span>
+            <div class="col-12 mt-4 justify-content-center" style="display: flex; align-items: center;">
+                <span>CSV</span>
                 <label class="switch">
-                    <input type="checkbox">
+                    <input type="checkbox" id="toggleSwitch">
                     <span class="slider round"></span>
                 </label>
-                <span>CSV</span>
+                <span>DB</span>
             </div>
+
 
 
         </div>
@@ -205,9 +207,11 @@
         
         function fetchErrorMetric(metric) {
             const region = $('#regionSelect').val();
-            const parameter = $('#barTemp').is(':checked') ? 'Temperature' : 'Humidity'; // Seçilen parametreyi belirle
+            const parameter = $('#barTemp').is(':checked') ? 'Temperature' : 'Humidity'; // Seçilen parametreyi belirle            ;
+            const isDbSelected = $('#toggleSwitch').is(':checked');
+            const DBorCSVUrl = isDbSelected ? `/api/weather/${region}/calculate-error-db` : `/api/weather/${region}/calculate-error`;
             $.ajax({
-                url: `/api/weather/${region}/calculate-error`,
+                url: DBorCSVUrl,
                 method: 'GET',
                 data: { metric: metric, parameter: parameter }, // Parametreyi query parametresi olarak gönder
                 success: function (data) {
@@ -427,15 +431,11 @@
             }, {});
         }
 
-        // Rastgele renk üretme fonksiyonu (grafik için)
-        function getRandomColor() {
-            const letters = '0123456789ABCDEF';
-            let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
-            }
-            return color;
-        }
+        // sayfayı resize ederken tekra çizmek (grafik için)
+        window.addEventListener('resize', function () {
+            // Your function to redraw the charts
+            updateWeatherData();
+        });
 
         // Sayfa yüklendiğinde başlangıç verilerini yükle
         $(document).ready(function () {

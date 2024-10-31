@@ -27,15 +27,15 @@ public class WeatherController(WeatherService weatherService) : Controller
         return Ok(data);
     }
 
-    [HttpGet("{plant}/calculate-error")]
+    [HttpGet("{region}/calculate-error")]
     public IActionResult CalculateErrorMetrics(
-        string plant,
+        string region,
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
         [FromQuery] string parameter = "Temperature",
         [FromQuery] string metric = "MAE") // Seçilen metrik parametresi
     {
-        var data = weatherService.GetWeatherDataByLocation(plant);
+        var data = weatherService.GetWeatherDataByLocation(region);
         if (startDate.HasValue && endDate.HasValue)
         {
             data = data.Where(d => d.Datetime >= startDate && d.Datetime <= endDate).ToList();
@@ -79,7 +79,35 @@ public class WeatherController(WeatherService weatherService) : Controller
     }
 
 
+    // 2. Veritabanından alınan veriyi işleyen endpoint
+    [HttpGet("{region}/calculate-error-db")]
+    public IActionResult CalculateErrorFromDb(
+        string region,
+        [FromQuery] string metric = "MAE",
+        [FromQuery] string parameter = "Temperature")
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(region) || string.IsNullOrEmpty(metric) || string.IsNullOrEmpty(parameter))
+            {
+                return BadRequest("Region, metric, and parameter must be provided.");
+            }
 
+            var values = weatherService.CalculateErrorFromDb(region,  parameter, metric);
+
+            var result = new
+            {
+                metric = metric,
+                values = values
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error: {ex.Message}");
+        }
+    }
 
 }
 

@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SolinerMVC.Enums;
+using SolinerMVC.Models;
 using SolinerMVC.Services;
+using System.Globalization;
 
 
 namespace SolinerMVC.Controllers;
@@ -12,11 +16,7 @@ public class HomeController(CsvUploadServices csvUploadServices) : Controller
 		return View();
 	}
 
-	public IActionResult Privacy()
-	{
-		return View();
-	}
-    [HttpPost]
+    [HttpPost] // hava tahminleri için
     public async Task<IActionResult> ImportCsv(IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -41,5 +41,19 @@ public class HomeController(CsvUploadServices csvUploadServices) : Controller
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
+    [HttpGet] // tüketim tahminleri için
+    public Task<IActionResult> LoadCsv()
+    {
+        var csvFilePath = "C:\\Users\\asus\\Downloads\\Consumption_Table.csv"; // CSV dosya yolunu belirtin
 
+        try
+        {
+            csvUploadServices.LoadCsvData(csvFilePath);
+            return Task.FromResult<IActionResult>(Ok("Veriler baþarýyla yüklendi."));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult<IActionResult>(BadRequest($"Veri yükleme hatasý: {ex.Message}"));
+        }
+    }
 }
